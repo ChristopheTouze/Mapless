@@ -46,12 +46,6 @@ Mapless class >> canRepresentSubMapless: anObject [
 						and: [ anObject includesKey: '_c' ] ] ]
 ]
 
-{ #category : #accessing }
-Mapless class >> collection [
-
-	^ self currentRepository database collectionAt: self collectionName 
-]
-
 { #category : #configuration }
 Mapless class >> collectionName [
 	"Answers the collection name that is expected to be used by the concrete repository"
@@ -66,54 +60,100 @@ Mapless class >> currentRepository [
 
 { #category : #testing }
 Mapless class >> existsCid: anId [
-
+	self flag: #deprecated.
 	^ ( self findCid: anId ) notNil
 ]
 
 { #category : #testing }
 Mapless class >> existsId: anId [
+	^ self existsId: anId in: self currentRepository
+]
 
-	^self currentRepository existsId: anId of: self
+{ #category : #testing }
+Mapless class >> existsId: anId in: aMaplessRepository [
+	^ aMaplessRepository existsId: anId of: self
 ]
 
 { #category : #querying }
-Mapless class >> find: someConditions [ 
+Mapless class >> find: someConditions [
 	"Answer a collection of instances of the receiver that meet with someConditions from the repository."
 
-	^self currentRepository instancesOf: self where: someConditions 
-		
+	^ self find: someConditions in: self currentRepository
+]
+
+{ #category : #querying }
+Mapless class >> find: someConditions in: aMaplessRepository [
+	"Answer a collection of instances of the receiver that meet with someConditions from the repository."
+
+	^ aMaplessRepository instancesOf: self where: someConditions
 ]
 
 { #category : #querying }
 Mapless class >> find: someConditions limit: toHowManyResults [
+	^ self
+		find: someConditions
+		limit: toHowManyResults
+		in: self currentRepository
+]
 
-	^self currentRepository instancesOf: self where: someConditions limit: toHowManyResults 
-		
+{ #category : #querying }
+Mapless class >> find: someConditions limit: toHowManyResults in: aMaplessRepository [
+	^ aMaplessRepository
+		instancesOf: self
+		where: someConditions
+		limit: toHowManyResults
 ]
 
 { #category : #querying }
 Mapless class >> find: someConditions limit: howManyResults offset: startingFromWhichResult [
-
-	^self currentRepository instancesOf: self where: someConditions limit: howManyResults offset: startingFromWhichResult  
-		
+	^ self
+		find: someConditions
+		limit: howManyResults
+		offset: startingFromWhichResult
+		in: self currentRepository
 ]
 
 { #category : #querying }
-Mapless class >> findAll [ 
+Mapless class >> find: someConditions limit: howManyResults offset: startingFromWhichResult in: aMaplessRepository [
+	^ aMaplessRepository
+		instancesOf: self
+		where: someConditions
+		limit: howManyResults
+		offset: startingFromWhichResult
+]
+
+{ #category : #querying }
+Mapless class >> findAll [
 	"Answer a collection with all receiver instances from the repository."
 
-	^self currentRepository instancesOf: self where: Dictionary new 
+	^ self findAllIn: self currentRepository
+]
+
+{ #category : #querying }
+Mapless class >> findAllIn: aMaplessRepository [
+	"Answer a collection with all receiver instances from the repository."
+
+	^ aMaplessRepository instancesOf: self where: Dictionary new
 ]
 
 { #category : #querying }
 Mapless class >> findAllSortedBy: aSelector [
-	"Answers all instances or ans empty set.
+	"Answers all instances or an empty set.
+	Note: this is only a good idea when you have very few of this objects
+	and starts to become a REALLY BAD idea when you have, for instance, more than 1000."
+
+	^ self findAllSortedBy: aSelector in: self currentRepository
+]
+
+{ #category : #querying }
+Mapless class >> findAllSortedBy: aSelector in: aMaplessRepository [
+	"Answers all instances or an empty set.
 	Note: this is only a good idea when you have very few of this objects
 	and starts to become a REALLY BAD idea when you have, for instance, more than 1000."
 
 	|answer|
 
-
+	self flag: #review.
 	answer := GRSmallOrderedSet  sortSelector: aSelector equalitySelector: #=.
 	self modelClasses do:[:aModelClass|
 		aModelClass == Mapless ifFalse:[
@@ -124,7 +164,7 @@ Mapless class >> findAllSortedBy: aSelector [
 
 { #category : #querying }
 Mapless class >> findCid: anId [
-
+	self flag: #deprecated.
 	^self currentRepository 
 		instanceOf: self 
 		where: (Dictionary newFromPairs: {'cid'. anId})
@@ -134,23 +174,36 @@ Mapless class >> findCid: anId [
 
 { #category : #querying }
 Mapless class >> findId: anId [
-
-	^self currentRepository instanceOf: self atId: anId
+	^ self findId: anId in: self currentRepository
 ]
 
 { #category : #querying }
-Mapless class >> findOne: someConditions [ 
-	"Answer a collection of instances of the receiver that meet with someConditions from the repository."
-
-	^self currentRepository instanceOf: self where: someConditions 
-		
+Mapless class >> findId: anId in: aMaplessRepository [
+	^ aMaplessRepository instanceOf: self atId: anId
 ]
 
 { #category : #querying }
-Mapless class >> first [ 
+Mapless class >> findOne: someConditions [
+	"Answer a collection of instances of the receiver that meet with someConditions from the current repository."
 
-	^self currentRepository instanceOf: self where: Dictionary new
-		
+	^ self findOne: someConditions in: self currentRepository
+]
+
+{ #category : #querying }
+Mapless class >> findOne: someConditions in: aMaplessRepository [
+	"Answer a collection of instances of the receiver that meet with someConditions found in aMaplessRepository."
+
+	^ aMaplessRepository instanceOf: self where: someConditions
+]
+
+{ #category : #querying }
+Mapless class >> first [
+	^ self firstIn: self currentRepository
+]
+
+{ #category : #querying }
+Mapless class >> firstIn: aMaplessRepository [
+	^ aMaplessRepository instanceOf: self where: Dictionary new
 ]
 
 { #category : #'instance creation' }
@@ -284,7 +337,7 @@ Mapless class >> mergeByCidWithStored: aMapless [
 	 overwriting and adding whatever is in aMapless."
 	
 	| stored |
-
+	self flag: #deprecated.
 	stored := aMapless freshFromCid.
 	stored 
 		ifNil: [ stored := aMapless ]
@@ -491,18 +544,30 @@ Mapless >> dateAndTimeAt: aSelector [
 
 { #category : #actions }
 Mapless >> delete [
-	"Saves this instance as deleted in the persistent collection"
-	
-	self currentRepository delete: self
+	"Saves this instance as deleted in its persistent collection using the current repository"
 
+	self deleteIn: self currentRepository
+]
+
+{ #category : #actions }
+Mapless >> deleteIn: aMaplessRepository [
+	"Saves this instance as deleted in its persistent collection found at aMaplessRepository"
+
+	aMaplessRepository delete: self
 ]
 
 { #category : #actions }
 Mapless >> destroy [
-	"Removes this instance from the persistent collection"
+	"Removes the document of this instance from its persistent collection using the current repository."
 
-	^self currentRepository destroy: self
+	^ self destroyIn: self currentRepository
+]
 
+{ #category : #actions }
+Mapless >> destroyIn: aMaplessRepository [
+	"Removes the document of this instance from its persistent collection found at aMaplessRepository"
+
+	^ aMaplessRepository destroy: self
 ]
 
 { #category : #accessing }
@@ -542,7 +607,7 @@ Mapless >> fresh [
 
 { #category : #actions }
 Mapless >> freshFromCid [
-
+	self flag: #deprecated.
 	^ self class findCid: self cid 
 ]
 
