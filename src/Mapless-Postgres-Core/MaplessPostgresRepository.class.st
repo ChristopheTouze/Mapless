@@ -68,7 +68,58 @@ MaplessPostgresRepository >> ensureCollection [
 { #category : #testing }
 MaplessPostgresRepository >> existsId: anId of: aMaplessClass [
 
-	^ ( self instanceOf: aMaplessClass  atId:  anId ) notNil
+	^ ( self findOne: aMaplessClass  atId:  anId ) notNil
+]
+
+{ #category : #accessing }
+MaplessPostgresRepository >> find: aMaplessClass where: someConditions [
+	"Answer a collection of instances of aMaplessClass that meet with someConditions from the repository."
+
+	^ self find: aMaplessClass where: someConditions limit: nil offset: nil
+]
+
+{ #category : #accessing }
+MaplessPostgresRepository >> find: aMaplessClass where: someConditions limit: aLimitOrNil [
+	"Answer a collection of instances of aMaplessClass that meet with someConditions from the repository."
+
+	^ self find: aMaplessClass where: someConditions limit: aLimitOrNil offset: nil
+]
+
+{ #category : #accessing }
+MaplessPostgresRepository >> find: aMaplessClass where: someConditions limit: aLimitOrNil offset: anOffsetOrNil [
+	"Answer a collection of instances of aMaplessClass that meet with someConditions from the repository."
+				
+	^ database do: [ :pg | | result |
+		result := pg execute: 'SELECT VALUE FROM "',
+			(aMaplessClass name),'" WHERE ',someConditions,';'.
+			
+		(result isNil or: [ 
+		result resultSets isEmpty ])
+			ifTrue: [ #() ]
+			ifFalse: [ result resultSets first rows collect: [ :row | | json |
+						json := Json readFrom: row data first readStream.
+						self onAfterRead: (aMaplessClass fromJSONObject: json)] ] ]
+]
+
+{ #category : #accessing }
+MaplessPostgresRepository >> findOne: aMapless atId: anId [
+
+	^ self  
+		findOne: aMapless 
+		where: (self idAttribute, ' = ''', anId, '''')
+]
+
+{ #category : #accessing }
+MaplessPostgresRepository >> findOne: aMaplessClass where: someConditions [
+	"Answer one instance of aMaplessClass that meet with someConditions from the repository."
+
+	| result |
+
+	result :=  self find: aMaplessClass where: someConditions.
+
+	^ result isEmpty
+		ifTrue: [ nil ]
+		ifFalse: [ result first ]
 ]
 
 { #category : #testing }
@@ -108,57 +159,6 @@ MaplessPostgresRepository >> insert: aMapless [
 
 	self onAfterInsert: aMapless
 
-]
-
-{ #category : #accessing }
-MaplessPostgresRepository >> instanceOf: aMapless atId: anId [
-
-	^ self  
-		instanceOf: aMapless 
-		where: (self idAttribute, ' = ''', anId, '''')
-]
-
-{ #category : #accessing }
-MaplessPostgresRepository >> instanceOf: aMaplessClass where: someConditions [
-	"Answer one instance of aMaplessClass that meet with someConditions from the repository."
-
-	| result |
-
-	result :=  self instancesOf: aMaplessClass where: someConditions.
-
-	^ result isEmpty
-		ifTrue: [ nil ]
-		ifFalse: [ result first ]
-]
-
-{ #category : #accessing }
-MaplessPostgresRepository >> instancesOf: aMaplessClass where: someConditions [
-	"Answer a collection of instances of aMaplessClass that meet with someConditions from the repository."
-
-	^ self instancesOf: aMaplessClass where: someConditions limit: nil offset: nil
-]
-
-{ #category : #accessing }
-MaplessPostgresRepository >> instancesOf: aMaplessClass where: someConditions limit: aLimitOrNil [
-	"Answer a collection of instances of aMaplessClass that meet with someConditions from the repository."
-
-	^ self instancesOf: aMaplessClass where: someConditions limit: aLimitOrNil offset: nil
-]
-
-{ #category : #accessing }
-MaplessPostgresRepository >> instancesOf: aMaplessClass where: someConditions limit: aLimitOrNil offset: anOffsetOrNil [
-	"Answer a collection of instances of aMaplessClass that meet with someConditions from the repository."
-				
-	^ database do: [ :pg | | result |
-		result := pg execute: 'SELECT VALUE FROM "',
-			(aMaplessClass name),'" WHERE ',someConditions,';'.
-			
-		(result isNil or: [ 
-		result resultSets isEmpty ])
-			ifTrue: [ #() ]
-			ifFalse: [ result resultSets first rows collect: [ :row | | json |
-						json := Json readFrom: row data first readStream.
-						self onAfterRead: (aMaplessClass fromJSONObject: json)] ] ]
 ]
 
 { #category : #reactions }

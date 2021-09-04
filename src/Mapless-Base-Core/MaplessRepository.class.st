@@ -123,6 +123,20 @@ MaplessRepository >> ensureCollectionNamed: aCollectionName [
 
 ]
 
+{ #category : #accessing }
+MaplessRepository >> find: aMaplessClass where: someConditions [
+	"Answer a collection of instances of aMaplessClass that meet with someConditions from the repository."
+
+	^self subclassResponsibility 
+]
+
+{ #category : #accessing }
+MaplessRepository >> findOne: aMaplessClass where: someConditions [
+	"Answer one instance of aMaplessClass that meet with someConditions from the repository."
+
+	^ self subclassResponsibility 
+]
+
 { #category : #testing }
 MaplessRepository >> hasCollectionNamed: aCollectionName [
 
@@ -133,20 +147,6 @@ MaplessRepository >> hasCollectionNamed: aCollectionName [
 MaplessRepository >> initializeOn: aDatabaseName with: aDatabaseAccessor [
 	databaseName := aDatabaseName.
 	accessor := aDatabaseAccessor
-]
-
-{ #category : #accessing }
-MaplessRepository >> instanceOf: aMaplessClass where: someConditions [
-	"Answer one instance of aMaplessClass that meet with someConditions from the repository."
-
-	^ self subclassResponsibility 
-]
-
-{ #category : #accessing }
-MaplessRepository >> instancesOf: aMaplessClass where: someConditions [
-	"Answer a collection of instances of aMaplessClass that meet with someConditions from the repository."
-
-	^self subclassResponsibility 
 ]
 
 { #category : #testing }

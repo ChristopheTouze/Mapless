@@ -76,7 +76,59 @@ MaplessMongoRepository >> ensureCollection [
 { #category : #testing }
 MaplessMongoRepository >> existsId: anId of: aMaplessClass [
 
-	^ ( self instanceOf: aMaplessClass  atId:  anId ) notNil
+	^ ( self findOne: aMaplessClass  atId:  anId ) notNil
+]
+
+{ #category : #accessing }
+MaplessMongoRepository >> find: aMaplessClass where: someConditions [
+	"Answer a collection of instances of aMaplessClass that meet with someConditions from the repository."
+
+	^self find: aMaplessClass where: someConditions limit: nil offset: nil
+]
+
+{ #category : #accessing }
+MaplessMongoRepository >> find: aMaplessClass where: someConditions limit: aLimitOrNil [
+	"Answer a collection of instances of aMaplessClass that meet with someConditions from the repository."
+
+	^self find: aMaplessClass where: someConditions limit: aLimitOrNil offset: nil
+]
+
+{ #category : #accessing }
+MaplessMongoRepository >> find: aMaplessClass where: someConditions limit: aLimitOrNil offset: anOffsetOrNil [
+	"Answer a collection of instances of aMaplessClass that meet with someConditions from the repository."
+
+	| result databaseCollection |
+
+	databaseCollection := self databaseCollectionNamed: aMaplessClass collectionName.
+	result := databaseCollection query:[:q | 
+		aLimitOrNil ifNotNil: [ :limit | q limit: limit ].
+		anOffsetOrNil ifNotNil: [ :offset | q offset: offset ].
+		q where: someConditions].
+	^(result isNil and:[result isEmpty])
+		ifTrue: [ #() ]
+		ifFalse: [ (aMaplessClass fromJSONObjects: result) collect: [ :each | self onAfterRead: each ] ]
+]
+
+{ #category : #accessing }
+MaplessMongoRepository >> findOne: aMaplessClass atId: anId [
+
+	^self
+		findOne: aMaplessClass 
+		where: (Dictionary newFromPairs: {self idAttribute. anId})
+]
+
+{ #category : #accessing }
+MaplessMongoRepository >> findOne: aMaplessClass where: someConditions [
+	"Answer one instance of aMaplessClass that meet with someConditions from the repository."
+
+	| result databaseCollection |
+
+	databaseCollection := self databaseCollectionNamed: aMaplessClass collectionName.
+	result :=  databaseCollection queryOne: [ :q | q where: someConditions ].
+
+	^result isNil
+		ifTrue: [ nil ]
+		ifFalse: [ self onAfterRead: (aMaplessClass fromJSONObject: result asJsonObject)  ]
 ]
 
 { #category : #testing }
@@ -107,58 +159,6 @@ MaplessMongoRepository >> insert: aMapless [
 
 	self onAfterInsert: aMapless
 
-]
-
-{ #category : #accessing }
-MaplessMongoRepository >> instanceOf: aMaplessClass atId: anId [
-
-	^self
-		instanceOf: aMaplessClass 
-		where: (Dictionary newFromPairs: {self idAttribute. anId})
-]
-
-{ #category : #accessing }
-MaplessMongoRepository >> instanceOf: aMaplessClass where: someConditions [
-	"Answer one instance of aMaplessClass that meet with someConditions from the repository."
-
-	| result databaseCollection |
-
-	databaseCollection := self databaseCollectionNamed: aMaplessClass collectionName.
-	result :=  databaseCollection queryOne: [ :q | q where: someConditions ].
-
-	^result isNil
-		ifTrue: [ nil ]
-		ifFalse: [ self onAfterRead: (aMaplessClass fromJSONObject: result asJsonObject)  ]
-]
-
-{ #category : #accessing }
-MaplessMongoRepository >> instancesOf: aMaplessClass where: someConditions [
-	"Answer a collection of instances of aMaplessClass that meet with someConditions from the repository."
-
-	^self instancesOf: aMaplessClass where: someConditions limit: nil offset: nil
-]
-
-{ #category : #accessing }
-MaplessMongoRepository >> instancesOf: aMaplessClass where: someConditions limit: aLimitOrNil [
-	"Answer a collection of instances of aMaplessClass that meet with someConditions from the repository."
-
-	^self instancesOf: aMaplessClass where: someConditions limit: aLimitOrNil offset: nil
-]
-
-{ #category : #accessing }
-MaplessMongoRepository >> instancesOf: aMaplessClass where: someConditions limit: aLimitOrNil offset: anOffsetOrNil [
-	"Answer a collection of instances of aMaplessClass that meet with someConditions from the repository."
-
-	| result databaseCollection |
-
-	databaseCollection := self databaseCollectionNamed: aMaplessClass collectionName.
-	result := databaseCollection query:[:q | 
-		aLimitOrNil ifNotNil: [ :limit | q limit: limit ].
-		anOffsetOrNil ifNotNil: [ :offset | q offset: offset ].
-		q where: someConditions].
-	^(result isNil and:[result isEmpty])
-		ifTrue: [ #() ]
-		ifFalse: [ (aMaplessClass fromJSONObjects: result) collect: [ :each | self onAfterRead: each ] ]
 ]
 
 { #category : #accessing }

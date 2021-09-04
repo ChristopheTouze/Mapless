@@ -85,7 +85,7 @@ Mapless class >> find: someConditions [
 Mapless class >> find: someConditions in: aMaplessRepository [
 	"Answer a collection of instances of the receiver that meet with someConditions from the repository."
 
-	^ aMaplessRepository instancesOf: self where: someConditions
+	^ aMaplessRepository find: self where: someConditions
 ]
 
 { #category : #querying }
@@ -99,7 +99,7 @@ Mapless class >> find: someConditions limit: toHowManyResults [
 { #category : #querying }
 Mapless class >> find: someConditions limit: toHowManyResults in: aMaplessRepository [
 	^ aMaplessRepository
-		instancesOf: self
+		find: self
 		where: someConditions
 		limit: toHowManyResults
 ]
@@ -116,7 +116,7 @@ Mapless class >> find: someConditions limit: howManyResults offset: startingFrom
 { #category : #querying }
 Mapless class >> find: someConditions limit: howManyResults offset: startingFromWhichResult in: aMaplessRepository [
 	^ aMaplessRepository
-		instancesOf: self
+		find: self
 		where: someConditions
 		limit: howManyResults
 		offset: startingFromWhichResult
@@ -133,7 +133,7 @@ Mapless class >> findAll [
 Mapless class >> findAllIn: aMaplessRepository [
 	"Answer a collection with all receiver instances from the repository."
 
-	^ aMaplessRepository instancesOf: self where: Dictionary new
+	^ aMaplessRepository find: self where: Dictionary new
 ]
 
 { #category : #querying }
@@ -166,7 +166,7 @@ Mapless class >> findAllSortedBy: aSelector in: aMaplessRepository [
 Mapless class >> findCid: anId [
 	self flag: #deprecated.
 	^self currentRepository 
-		instanceOf: self 
+		findOne: self 
 		where: (Dictionary newFromPairs: {'cid'. anId})
 	
 	
@@ -179,7 +179,7 @@ Mapless class >> findId: anId [
 
 { #category : #querying }
 Mapless class >> findId: anId in: aMaplessRepository [
-	^ aMaplessRepository instanceOf: self atId: anId
+	^ aMaplessRepository findOne: self atId: anId
 ]
 
 { #category : #querying }
@@ -193,7 +193,7 @@ Mapless class >> findOne: someConditions [
 Mapless class >> findOne: someConditions in: aMaplessRepository [
 	"Answer a collection of instances of the receiver that meet with someConditions found in aMaplessRepository."
 
-	^ aMaplessRepository instanceOf: self where: someConditions
+	^ aMaplessRepository findOne: self where: someConditions
 ]
 
 { #category : #querying }
@@ -203,7 +203,7 @@ Mapless class >> first [
 
 { #category : #querying }
 Mapless class >> firstIn: aMaplessRepository [
-	^ aMaplessRepository instanceOf: self where: Dictionary new
+	^ aMaplessRepository findOne: self where: Dictionary new
 ]
 
 { #category : #'instance creation' }
