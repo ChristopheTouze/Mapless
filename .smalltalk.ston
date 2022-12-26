@@ -1,0 +1,10 @@
+SmalltalkCISpec {
+  #loading : [
+    SCIMetacelloLoadSpec {
+      #baseline : 'Mapless',
+      #directory : 'src',
+      #load : ['Memory-Tests'],
+      #platforms : [ #pharo ]
+    }
+  ]
+}

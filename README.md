@@ -4,6 +4,7 @@
 
 Schema-less persistence for Smalltalk with support for multiple backends.
 
+![build](https://github.com/sebastianconcept/Mapless/actions/workflows/build.yml/badge.svg)
 [![Release](https://img.shields.io/github/v/tag/sebastianconcept/Mapless?label=release)](https://github.com/sebastianconcept/Mapless/releases)
 ![Tests](https://img.shields.io/badge/tests-178-green)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE.txt)
