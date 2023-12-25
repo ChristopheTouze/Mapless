@@ -281,10 +281,10 @@ MaplessMongoReplicaSetPool >> getIdleReadOnlyClient [
 	"Answers the next MongoDB client from among the idle,
 	read-only ones, according to the load balancer.
 	Return 'nil' if none can be found."
-
 	| idleReadOnlyClientUrls selectedUrl |
-	idleReadOnlyClientUrls := idleReadOnlyClients
-		collect: [ :each | each mongoUrl ].
+	idleReadOnlyClientUrls := idleReadOnlyClients 
+		select: [ :each| loadBalancer isElectable: each mongoUrl]
+		thenCollect: [ :each | each mongoUrl ].
 	idleReadOnlyClientUrls ifEmpty: [ ^ nil ].
 	selectedUrl := loadBalancer
 		nextAmong: (Array withAll: idleReadOnlyClientUrls asArray).
@@ -298,6 +298,14 @@ MaplessMongoReplicaSetPool >> getIdleReadOnlyClient [
 { #category : #actions }
 MaplessMongoReplicaSetPool >> getIdleReadWriteClient [
 	^ idleReadWriteClients anyOne
+]
+
+{ #category : #accessing }
+MaplessMongoReplicaSetPool >> getNodeFor: aMongoUrl [
+	"Find matching node"
+	^ self nodes
+		detect:
+			[ :node | aMongoUrl port = node value port and: [ aMongoUrl host = node value host ] ]
 ]
 
 { #category : #accessing }
@@ -320,6 +328,15 @@ MaplessMongoReplicaSetPool >> hasBusyClients [
 
 	^ self busyReadOnlyClients notEmpty
 		or: [ self busyReadWriteClients notEmpty ]
+]
+
+{ #category : #testing }
+MaplessMongoReplicaSetPool >> hasElectableIdleReadOnlyClients [
+	self hasIdleReadOnlyClients
+		ifFalse: [ ^ false ].
+	^ (idleReadOnlyClients
+		detect: [ :each | loadBalancer isElectable: each mongoUrl ]
+		ifNone: [  ]) notNil
 ]
 
 { #category : #testing }
@@ -444,6 +461,13 @@ MaplessMongoReplicaSetPool >> initializeMongoUrls: someMongoUrls weights: weight
 	loadBalancer := MaplessWeightedRandomPolicy
 		fromDictionary: weightsDictionary
 		seed: DateAndTime now asUnixTime
+]
+
+{ #category : #testing }
+MaplessMongoReplicaSetPool >> isElectable: aMongoUrl [
+	^(self getNodeFor: aMongoUrl)
+		ifNotNil: [ :node| node weight > 0 ]
+		ifNil: [ false ]
 ]
 
 { #category : #testing }
