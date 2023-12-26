@@ -69,5 +69,5 @@ MaplessMongoRSHealthCheckerClients >> keyFrom: aMongoUrl [
 
 { #category : #actions }
 MaplessMongoRSHealthCheckerClients >> stop [
-	dictionary valuesDo: [ :eachClient | eachClient close ]
+	dictionary valuesDo: [ :eachClient | [eachClient close] on: Error do:[] ]
 ]
