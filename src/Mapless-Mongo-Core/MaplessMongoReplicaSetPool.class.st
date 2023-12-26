@@ -301,14 +301,6 @@ MaplessMongoReplicaSetPool >> getIdleReadWriteClient [
 ]
 
 { #category : #accessing }
-MaplessMongoReplicaSetPool >> getNodeFor: aMongoUrl [
-	"Find matching node"
-	^ self nodes
-		detect:
-			[ :node | aMongoUrl port = node value port and: [ aMongoUrl host = node value host ] ]
-]
-
-{ #category : #accessing }
 MaplessMongoReplicaSetPool >> getPrimaryUrl [
 
 	^ resolver primaryUrl
@@ -461,13 +453,6 @@ MaplessMongoReplicaSetPool >> initializeMongoUrls: someMongoUrls weights: weight
 	loadBalancer := MaplessWeightedRandomPolicy
 		fromDictionary: weightsDictionary
 		seed: DateAndTime now asUnixTime
-]
-
-{ #category : #testing }
-MaplessMongoReplicaSetPool >> isElectable: aMongoUrl [
-	^(self getNodeFor: aMongoUrl)
-		ifNotNil: [ :node| node weight > 0 ]
-		ifNil: [ false ]
 ]
 
 { #category : #testing }

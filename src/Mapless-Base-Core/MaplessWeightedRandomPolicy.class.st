@@ -47,6 +47,14 @@ MaplessWeightedRandomPolicy >> getNext: aRandomValue [
 		ifNone: [ self error: 'Improper weighted resource configuration' ]
 ]
 
+{ #category : #accessing }
+MaplessWeightedRandomPolicy >> getNodeFor: aMongoUrl [
+	"Find matching node"
+	^ self nodes
+		detect:
+			[ :node | aMongoUrl port = node value port and: [ aMongoUrl host = node value host ] ]
+]
+
 { #category : #initialization }
 MaplessWeightedRandomPolicy >> initializeNodes [
 	^ nodes := OrderedCollection new
@@ -56,6 +64,13 @@ MaplessWeightedRandomPolicy >> initializeNodes [
 MaplessWeightedRandomPolicy >> initializeOn: anInteger [
 	random := Random seed: anInteger.
 	self recalculateWeight 
+]
+
+{ #category : #testing }
+MaplessWeightedRandomPolicy >> isElectable: aMongoUrl [
+	^(self getNodeFor: aMongoUrl)
+		ifNotNil: [ :node| node weight > 0 ]
+		ifNil: [ false ]
 ]
 
 { #category : #actions }
