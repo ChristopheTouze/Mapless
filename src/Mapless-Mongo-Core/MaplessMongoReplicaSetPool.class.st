@@ -256,17 +256,17 @@ MaplessMongoReplicaSetPool >> ensureTopology [
 	3. Ask the replica set about its members status.
 	4. If the primary node is not the one the resolver has, make the resolver update itself.
 	5. Update the resolver about the addresses of the secondaries."
-
 	| client primaryUrl |
 	resolver hasPrimary
 		ifFalse: [ resolver findPrimaryFor: self ].
 	primaryUrl := resolver primaryUrl.
-	client := self makeClientWith: primaryUrl.
+	client := self getHealthCheckClientFor: primaryUrl.
 	client
 		ifNil: [ resolver resetRoles.
 			ReplicaSetPrimaryNotFound
 				signal: 'Primary node could not be reached.' ].
 	resolver updateStatusFrom: client.
+
 ]
 
 { #category : #actions }
@@ -274,6 +274,14 @@ MaplessMongoReplicaSetPool >> findPrimary [
 	"Find the primary of the replica set"
 
 	^ resolver findPrimaryFor: self
+]
+
+{ #category : #healthcheck }
+MaplessMongoReplicaSetPool >> getHealthCheckClientFor: aMongoUrl [
+	"Answers MongoDB client dedicated to healthcheck processes."
+	^ self healthCheckClients
+		getHealthCheckClientFor: aMongoUrl
+		addIfMissing: [ self makeClientWith: aMongoUrl ]
 ]
 
 { #category : #actions }
@@ -359,6 +367,12 @@ MaplessMongoReplicaSetPool >> hasMaxReadWriteClients [
 { #category : #testing }
 MaplessMongoReplicaSetPool >> hasPrimary [
 	^ resolver hasPrimary
+]
+
+{ #category : #healthcheck }
+MaplessMongoReplicaSetPool >> healthCheckClients [
+	"Answers dictionary of MongoDB clients dedicated to healthcheck processes."
+	^MaplessMongoRSHealthCheckerClients default
 ]
 
 { #category : #accessing }
@@ -458,29 +472,25 @@ MaplessMongoReplicaSetPool >> initializeMongoUrls: someMongoUrls weights: weight
 { #category : #testing }
 MaplessMongoReplicaSetPool >> isReadOnlyHealthy: aMongoUrl [
 	"Answers true if aMongoUrl can be used as a healthy read-only connection."
-
 	| client |
-	client := self makeClientWith: aMongoUrl.
-	^ [ client notNil
+	client := self getHealthCheckClientFor: aMongoUrl.
+	^ client notNil
 		and: [ client isValid
 				and: [ client isSecondary
 						and:
-							[ (MongoDatabase root: client name: 'admin') collectionNames notEmpty ] ] ] ]
-		ensure: [ client ifNotNil: [ client close ] ]
+							[ (MongoDatabase root: client name: 'admin') collectionNames notEmpty ] ] ]
 ]
 
 { #category : #testing }
 MaplessMongoReplicaSetPool >> isReadWriteHealthy: aMongoUrl [
 	"Answers true if aMongoUrl can be used as a healthy read-write connection."
-
 	| client |
-	client := self makeClientWith: aMongoUrl.
-	^ [ client notNil
+	client := self getHealthCheckClientFor: aMongoUrl.
+	^ client notNil
 		and: [ client isValid
 				and: [ client isPrimary
 						and:
-							[ (MongoDatabase root: client name: 'admin') collectionNames notEmpty ] ] ] ]
-		ensure: [ client ifNotNil: [ client close ] ]
+							[ (MongoDatabase root: client name: 'admin') collectionNames notEmpty ] ] ]
 ]
 
 { #category : #accessing }
@@ -583,21 +593,19 @@ MaplessMongoReplicaSetPool >> primaryAvailabilityHealthcheck [
 	"Raise proper exceptions (to be handled) if any of these check fails:
 	1. Primary can be reached.
 	2. Primary can be used."
-
 	| client primaryUrl adminDb usersCollection |
 	"1. Primary can be reached."
 	resolver hasPrimary
 		ifFalse: [ resolver findPrimaryFor: self ].
 	primaryUrl := resolver primaryUrl.
-	client := self makeClientWith: primaryUrl.
+	client := self getHealthCheckClientFor: primaryUrl.
 	client
 		ifNil: [ resolver resetRoles.
 			ReplicaSetPrimaryNotFound
 				signal: 'Primary node could not be reached.' ].
-
 	"2. Primary can be used.
 	The client should be able to get an answer from querying the users collection in the admin database."
-	[ [ adminDb := MongoDatabase root: client name: 'admin'.
+	[ adminDb := MongoDatabase root: client name: 'admin'.
 	usersCollection := MongoCollection
 		database: adminDb
 		name: 'system.users'.
@@ -606,8 +614,7 @@ MaplessMongoReplicaSetPool >> primaryAvailabilityHealthcheck [
 		on: Error
 		do: [ :x | 
 			MaplessReadWriteOperationFailed
-				signal: 'Primary node could not query the "admin" database' ] ]
-		ensure: [ client ifNotNil: [ client close ] ]
+				signal: 'Primary node could not query the "admin" database' ]
 ]
 
 { #category : #actions }
@@ -783,16 +790,14 @@ MaplessMongoReplicaSetPool >> replicaSetCongifurationHealthcheck [
 	"1. Connect to a secondary node in the replica set.
 	2. Verify that the list of nodes in the replica set configuration are the same that my resolver has.
 	3. Raise an exception if any inconsistencies are detected, otherwise proceed silently."
-
 	| client membersUrls rsStatus |
 	"1. Connect to a node in the replica set."
 	resolver mongoUrls
 		detect: [ :mongoUrl | 
-			client := self makeClientWith: mongoUrl.
+			client := self getHealthCheckClientFor: mongoUrl.
 			client notNil ]
 		ifNone: [ MaplessNoReplicaSetMemberCouldBeReached signal ].
 	rsStatus := client replicaSetStatus.
-
 	"2. Verify that the list of nodes in the replica set configuration is the same as the one found."
 	membersUrls := rsStatus members collect: [ :e | e name asMongoUrl ].
 	((membersUrls includesAll: resolver mongoUrls)
@@ -800,10 +805,9 @@ MaplessMongoReplicaSetPool >> replicaSetCongifurationHealthcheck [
 		ifFalse: [ MaplessReplicaSetInconsistentConfiguration
 				signal:
 					'The nodes informed by the replica set do not match the ones configured in this pool' ].
-
 	"3. Raise an exception if any inconsistencies are detected, otherwise proceed silently."
 	
-	"All good so far, moving on."				
+	"All good so far, moving on."	
 ]
 
 { #category : #actions }
@@ -879,15 +883,13 @@ MaplessMongoReplicaSetPool >> secondaryAvailabilityHealthcheck: aMongoUrl [
 	1. Secondary can be reached.
 	2. Client status is reported as secondary.
 	3. Secondary receives a query answer."
-
 	| client adminDb usersCollection |
 	"1. Secondary can be reached."
-	client := self makeClientWith: aMongoUrl.
+	client := self getHealthCheckClientFor: aMongoUrl.
 	client
 		ifNil: [ resolver resetRoles.
 			ReplicaSetSecondaryNotFound
 				signal: 'Secondary node could not be reached.' ].
-
 	"2. Client status is reported as secondary."
 	(client replicaSetStatus secondaryMembers
 		noneSatisfy: [ :each | each name asMongoUrl = client asMongoUrl ])
@@ -895,10 +897,9 @@ MaplessMongoReplicaSetPool >> secondaryAvailabilityHealthcheck: aMongoUrl [
 				signal:
 					('Expected secondary not found in Replica Set: {1}'
 						format: {aMongoUrl asString}) ].
-
 	"3. Secondary can be used.
 	The client should be able to get an answer from querying the users collection in the admin database."
-	[ [ adminDb := MongoDatabase root: client name: 'admin'.
+	[ adminDb := MongoDatabase root: client name: 'admin'.
 	usersCollection := MongoCollection
 		database: adminDb
 		name: 'system.users'.
@@ -907,8 +908,7 @@ MaplessMongoReplicaSetPool >> secondaryAvailabilityHealthcheck: aMongoUrl [
 		on: Error
 		do: [ :x | 
 			MaplessReadOnlyOperationFailed
-				signal: 'Secondary node could not query the "admin" database' ] ]
-		ensure: [ client ifNotNil: [ client close ] ].
+				signal: 'Secondary node could not query the "admin" database' ]
 ]
 
 { #category : #accessing }
