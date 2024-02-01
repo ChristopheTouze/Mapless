@@ -41,7 +41,7 @@ MaplessMongoRSHealthCheckerClients >> getHealthCheckClientFor: aMongoUrl addIfMi
 	key := self keyFrom: aMongoUrl.
 	client := self dictionary at: key ifAbsent: [  ].
 	(client notNil and: [ self isClientHealthy: client ])
-		ifTrue: [ client close.
+		ifFalse: [ client close.
 			client := nil ].
 	^ client
 		ifNil: [ client := self dictionary at: key put: aBlock value ]
