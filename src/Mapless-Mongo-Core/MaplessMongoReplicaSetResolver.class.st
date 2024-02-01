@@ -22,20 +22,23 @@ MaplessMongoReplicaSetResolver class >> fromMongoUrls: someMongoUrls [
 
 { #category : #actions }
 MaplessMongoReplicaSetResolver >> findPrimaryFor: aMaplessMongoReplicaSetPool [
-	"Answers true if the primary was found."
+	"Answers true if the primary was found. Get the replicaset status only once - from first reached mongo node"
 
-	| client rsStatus |
-	self mongoUrls
-		do: [ :mongoUrl | 
-			[ client := aMaplessMongoReplicaSetPool makeClientWith: mongoUrl.
-			client notNil
-				ifTrue: [ rsStatus := client replicaSetStatus.
-					(rsStatus members anySatisfy: [ :e | e isPrimary ])
-						ifFalse: [ ReplicaSetPrimaryNotFound
-								signal: 'Primary node could not be reached.' ].
-					self updateStatusFromStatus: rsStatus.
-					aMaplessMongoReplicaSetPool onPrimaryFound ] ]
-				ensure: [ client ifNotNil: [ client close ] ] ].
+	| client rsStatus index |
+	[ | aMongoUrl |
+	index ifNil: [ index := 1 ].
+	aMongoUrl := self mongoUrls at: index.
+	[ (client := aMaplessMongoReplicaSetPool makeClientWith: aMongoUrl)
+		notNil
+		ifTrue: [ rsStatus := client replicaSetStatus.
+			(rsStatus members anySatisfy: [ :e | e isPrimary ])
+				ifFalse: [ ReplicaSetPrimaryNotFound
+						signal: 'Primary node could not be reached.' ].
+			self updateStatusFromStatus: rsStatus.
+			aMaplessMongoReplicaSetPool onPrimaryFound ].
+	index := index + 1 ]
+		ensure: [ client ifNotNil: [ client close ] ] ]
+		doWhileTrue: [ primaryUrl isNil and: [ index <= self mongoUrls size ] ].
 	primaryUrl
 		ifNil: [ ReplicaSetPrimaryNotFound
 				signal: 'Primary node could not be reached.' ]
