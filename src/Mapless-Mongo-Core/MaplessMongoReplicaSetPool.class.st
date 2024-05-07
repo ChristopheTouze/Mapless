@@ -573,6 +573,10 @@ MaplessMongoReplicaSetPool >> onNotPrimaryReadWriteAttempt: aBlock using: aMongo
 	self ensureMinimumQuantityOfReadWriteClients
 ]
 
+{ #category : #actions }
+MaplessMongoReplicaSetPool >> onPrimaryFound [
+]
+
 { #category : #reactions }
 MaplessMongoReplicaSetPool >> onPrimaryFound: aMongoAPI [
 	self removeInvalidClients.
@@ -821,7 +825,7 @@ MaplessMongoReplicaSetPool >> requestReadOnlyClient [
 				ifFalse: [ self hasMaxReadOnlyClients
 						ifTrue: [ ^ MaplessMaximumReadWritePoolClientsReached signal ].
 					self makeReadOnlyClient ].
-			(client notNil and: [ client isValid not ])
+			(client notNil and: [ ([ client isValid not ] on: Error do: [ :ex| true ]) ])
 				ifTrue: [ self removeReadOnlyClient: client ifAbsent: [ nil ].
 					client := self makeReadOnlyClient ].
 			self removeReadOnlyClient: client ifAbsent: [ nil ].
