@@ -356,12 +356,12 @@ MaplessMongoReplicaSetPool >> hasIdleReadWriteClients [
 
 { #category : #testing }
 MaplessMongoReplicaSetPool >> hasMaxReadOnlyClients [
-	^ self maxReadOnlyClients = self quantityOfReadOnlyClients
+	^ self maxReadOnlyClients <= self quantityOfReadOnlyClients
 ]
 
 { #category : #testing }
 MaplessMongoReplicaSetPool >> hasMaxReadWriteClients [
-	^ self maxReadWriteClients = self quantityOfReadWriteClients
+	^ self maxReadWriteClients <= self quantityOfReadWriteClients
 ]
 
 { #category : #testing }
